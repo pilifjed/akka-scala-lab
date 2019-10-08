@@ -43,7 +43,7 @@ class OrderManager extends Actor with FSM[OrderManager.State, OrderManager.Data]
 
   when(Uninitialized){
     case Event(command :AddItem, Empty) =>
-      val cartRef = context.actorOf(Props[Cart])
+      val cartRef = context.actorOf(Props[CartManager])
       cartRef ! command
       goto(Open).using(CartData(sender(),cartRef))
   }
@@ -58,10 +58,10 @@ class OrderManager extends Actor with FSM[OrderManager.State, OrderManager.Data]
     case Event(Buy, CartData(_,cartRef)) =>
       cartRef ! Buy
       stay().using(CartData(sender(),cartRef))
-    case Event(Cart.CheckOutStarted(ref), CartData(master, _)) =>
+    case Event(CartManager.CheckOutStarted(ref), CartData(master, _)) =>
       log.debug("Checkout Started")
       goto(InCheckout).using(InCheckoutData(master, ref))
-    case Event(Cart.CartEmpty, _) =>
+    case Event(CartManager.CartEmpty, _) =>
       log.debug("Cart Empty")
       goto(Uninitialized).using(Empty)
     case Event(Done, CartData(master, _)) =>
@@ -93,7 +93,7 @@ class OrderManager extends Actor with FSM[OrderManager.State, OrderManager.Data]
   }
 
   when(Finished, stateTimeout = 10 seconds){
-    case Event(Cart.CartEmpty,_) =>
+    case Event(CartManager.CartEmpty,_) =>
       stay()
     case Event(StateTimeout, _) =>
       goto(Uninitialized).using(Empty)
